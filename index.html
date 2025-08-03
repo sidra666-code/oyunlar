@@ -5,24 +5,159 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mini Oyunlar 🎮</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    .hidden { display: none; }
+    #draggable {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 1000;
+      cursor: grab;
+      touch-action: none;
+    }
+  </style>
 </head>
-<body class="bg-gradient-to-br from-indigo-700 to-purple-900 text-white min-h-screen flex flex-col items-center justify-center">
+<body class="bg-gradient-to-br from-indigo-700 to-purple-900 text-white min-h-screen relative">
 
-  <h1 class="text-4xl font-bold mb-8">🎮 Mini Oyun Dünyası</h1>
+  <!-- Ana Menü -->
+  <div id="menu" class="flex flex-col items-center justify-center h-screen">
+    <h1 class="text-4xl font-bold mb-8">🎮 Mini Oyun Dünyası</h1>
 
-  <div class="grid gap-6 md:grid-cols-2 grid-cols-1 w-full max-w-xl px-4">
+    <div class="grid gap-6 md:grid-cols-2 grid-cols-1 w-full max-w-xl px-4">
+      <button onclick="openGame('oyun2048')" class="bg-yellow-500 hover:bg-yellow-400 text-center py-5 rounded-xl shadow-lg transition-all text-xl font-semibold">
+        🟨 2048 Oyunu
+      </button>
 
-    <a href="https://2048oyunu-pi.vercel.app/" target="_blank"
-       class="bg-yellow-500 hover:bg-yellow-400 text-center py-5 rounded-xl shadow-lg transition-all text-xl font-semibold">
-      🟨 2048 Oyunu
-    </a>
-
-    <a href="https://labirent-rho.vercel.app/" target="_blank"
-       class="bg-green-500 hover:bg-green-400 text-center py-5 rounded-xl shadow-lg transition-all text-xl font-semibold">
-      🟩 Labirent Oyunu
-    </a>
-
+      <button onclick="openGame('labirent')" class="bg-green-500 hover:bg-green-400 text-center py-5 rounded-xl shadow-lg transition-all text-xl font-semibold">
+        🟩 Labirent Oyunu
+      </button>
+    </div>
   </div>
 
+  <!-- 2048 Oyunu -->
+  <div id="oyun2048" class="hidden w-full h-full">
+    <iframe src="https://2048oyunu-pi.vercel.app/"></iframe>
+  </div>
+
+  <!-- Labirent Oyunu -->
+  <div id="labirent" class="hidden w-full h-full">
+    <iframe src="https://labirent-rho.vercel.app/"></iframe>
+  </div>
+
+  <!-- Sürüklenebilir Home Butonu -->
+  <div id="draggable" class="hidden">
+    <button id="homeBtn" class="bg-white text-black text-2xl px-4 py-2 rounded-full shadow-lg">
+      🏠
+    </button>
+  </div>
+
+  <!-- Emin misiniz Kutusu -->
+  <div id="confirmBox" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+    <div class="bg-white text-black p-6 rounded-xl shadow-xl text-center">
+      <p class="mb-4 text-lg font-semibold">Ana menüye dönmek istediğine emin misin?</p>
+      <div class="flex justify-center gap-4">
+        <button onclick="goBack()" class="bg-green-500 text-white px-4 py-2 rounded-lg">Evet</button>
+        <button onclick="cancelReturn()" class="bg-red-500 text-white px-4 py-2 rounded-lg">Hayır</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentGame = null;
+
+    function openGame(id) {
+      currentGame = id;
+      document.getElementById('menu').classList.add('hidden');
+      document.getElementById('oyun2048').classList.add('hidden');
+      document.getElementById('labirent').classList.add('hidden');
+      document.getElementById(id).classList.remove('hidden');
+      document.getElementById('draggable').classList.remove('hidden');
+    }
+
+    function confirmReturn() {
+      document.getElementById('confirmBox').classList.remove('hidden');
+    }
+
+    function cancelReturn() {
+      document.getElementById('confirmBox').classList.add('hidden');
+    }
+
+    function goBack() {
+      document.getElementById(currentGame).classList.add('hidden');
+      document.getElementById('menu').classList.remove('hidden');
+      document.getElementById('confirmBox').classList.add('hidden');
+      document.getElementById('draggable').classList.add('hidden');
+      currentGame = null;
+    }
+
+    // Sürüklenebilir & tıklanabilir ayarı
+    const dragItem = document.getElementById("draggable");
+    const homeBtn = document.getElementById("homeBtn");
+
+    let active = false, currentX, currentY, initialX, initialY, xOffset = 0, yOffset = 0;
+    let moved = false;
+
+    dragItem.addEventListener("mousedown", dragStart);
+    dragItem.addEventListener("mouseup", dragEnd);
+    dragItem.addEventListener("mousemove", drag);
+    dragItem.addEventListener("touchstart", dragStart, { passive: false });
+    dragItem.addEventListener("touchend", dragEnd);
+    dragItem.addEventListener("touchmove", drag, { passive: false });
+
+    function dragStart(e) {
+      e.preventDefault();
+      moved = false;
+      if (e.type === "touchstart") {
+        initialX = e.touches[0].clientX - xOffset;
+        initialY = e.touches[0].clientY - yOffset;
+      } else {
+        initialX = e.clientX - xOffset;
+        initialY = e.clientY - yOffset;
+      }
+      active = true;
+    }
+
+    function dragEnd(e) {
+      initialX = currentX;
+      initialY = currentY;
+      active = false;
+
+      // Eğer hareket etmediyse tıklamadır
+      if (!moved) {
+        confirmReturn();
+      }
+    }
+
+    function drag(e) {
+      if (!active) return;
+
+      e.preventDefault();
+      moved = true;
+
+      if (e.type === "touchmove") {
+        currentX = e.touches[0].clientX - initialX;
+        currentY = e.touches[0].clientY - initialY;
+      } else {
+        currentX = e.clientX - initialX;
+        currentY = e.clientY - initialY;
+      }
+
+      xOffset = currentX;
+      yOffset = currentY;
+
+      dragItem.style.transform = `translate(${currentX}px, ${currentY}px)`;
+    }
+  </script>
 </body>
 </html>
